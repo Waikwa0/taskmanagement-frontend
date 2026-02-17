@@ -3,8 +3,8 @@ FROM node:18 AS build
 
 WORKDIR /app
 
-# Copy only task-frontend folder from context
-COPY task-frontend/ ./task-frontend/
+# Copy task-frontend from within frontend folder
+COPY ./task-frontend ./task-frontend
 
 # Go into task-frontend folder
 WORKDIR /app/task-frontend
