@@ -3,13 +3,11 @@ FROM node:18 AS build
 
 WORKDIR /app
 
-# Copy task-frontend from within frontend folder
-COPY ./task-frontend ./task-frontend
+# Copy task-frontend folder from context (relative to repo root)
+COPY ./frontend/task-frontend ./task-frontend
 
-# Go into task-frontend folder
 WORKDIR /app/task-frontend
 
-# Install dependencies and build
 RUN npm install
 RUN npm run build
 
