@@ -1,26 +1,21 @@
-# Use Node.js base image
-FROM node:18
+# Stage 1: Build React app
+FROM node:18 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy only task-frontend folder from context
+COPY task-frontend/ ./task-frontend/
 
-# Install dependencies
-RUN npm install
-
-# Copy the frontend source
-COPY task-frontend ./task-frontend
-
-# Set working directory inside the container
+# Go into task-frontend folder
 WORKDIR /app/task-frontend
 
-# Build the frontend (if using React or Angular)
+# Install dependencies and build
+RUN npm install
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
+# Stage 2: Serve with nginx
+FROM nginx:alpine
+COPY --from=build /app/task-frontend/build /usr/share/nginx/html
 
-# Start the app
-CMD ["npm", "start"]
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
