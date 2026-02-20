@@ -21,11 +21,22 @@ interface User {
   };
 }
 
+interface Comment {
+  id: number;
+  taskId: number;
+  content: string;
+  createdBy: string;
+}
+
 const SeniorManagerTasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [search, setSearch] = useState("");
+  const [filterTeam, setFilterTeam] = useState("");
+  const [filterProject, setFilterProject] = useState("");
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -34,10 +45,10 @@ const SeniorManagerTasks: React.FC = () => {
   const [dueDate, setDueDate] = useState("");
   const [assignedTo, setAssignedTo] = useState<number | "">("");
 
-  // Fetching tasks
+  // Fetch tasks
   const fetchTasks = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/api/tasks");
+      const res = await axios.get("/api/tasks");
       setTasks(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch tasks:", err);
@@ -45,34 +56,41 @@ const SeniorManagerTasks: React.FC = () => {
     }
   };
 
-  // Fetching all relevant users
+  // Fetch users
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:8081/api/users");
-
+      const res = await axios.get("/api/users");
       const relevantUsers = res.data.filter((u: User) =>
         ["DEVELOPER", "HEAD", "SENIOR_MANAGER"].includes(u.role?.name)
       );
-
       setUsers(relevantUsers);
     } catch (err) {
       console.error("Failed to fetch users:", err);
     }
   };
 
-  // Load data on component mount
+    // Fetch comments
+    const fetchComments = async () => {
+      try {
+        const res = await axios.get("/api/comments"); // <-- use backticks
+        setComments(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to fetch comments:", err);
+      }
+    };
+
+
   useEffect(() => {
     const loadData = async () => {
       await fetchTasks();
       await fetchUsers();
+      await fetchComments();
     };
     loadData();
   }, []);
 
-  // Create or update task
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!assignedTo) {
       alert("Assign a user first");
       return;
@@ -82,7 +100,7 @@ const SeniorManagerTasks: React.FC = () => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       if (editingTask) {
-        await axios.put(`http://localhost:8080/api/tasks/${editingTask.id}`, {
+        await axios.put(`/api/tasks/${editingTask.id}`, {
           title,
           description,
           team,
@@ -91,7 +109,7 @@ const SeniorManagerTasks: React.FC = () => {
           assignedTo,
         });
       } else {
-        await axios.post("http://localhost:8080/api/tasks", {
+        await axios.post("/api/tasks", {
           title,
           description,
           team,
@@ -110,19 +128,16 @@ const SeniorManagerTasks: React.FC = () => {
     }
   };
 
-  // Delete task
   const handleDelete = async (id: number) => {
     if (!window.confirm("Delete this task?")) return;
-
     try {
-      await axios.delete(`http://localhost:8080/api/tasks/${id}`);
+      await axios.delete(`/api/tasks/${id}`);
       fetchTasks();
     } catch (err) {
       console.error("Delete failed:", err);
     }
   };
 
-  // Edit task
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setTitle(task.title);
@@ -133,7 +148,6 @@ const SeniorManagerTasks: React.FC = () => {
     setAssignedTo(task.assignedTo || "");
   };
 
-  // Reset form
   const resetForm = () => {
     setEditingTask(null);
     setTitle("");
@@ -144,46 +158,96 @@ const SeniorManagerTasks: React.FC = () => {
     setAssignedTo("");
   };
 
-  // Update status
   const updateStatus = async (taskId: number, status: string) => {
     try {
-      await axios.patch(`http://localhost:8080/api/tasks/${taskId}/status`, {
-        status,
-      });
+      await axios.patch(`/api/tasks/${taskId}/status`, { status });
       fetchTasks();
     } catch (err) {
       console.error("Status update failed:", err);
     }
   };
 
-  // Get user name with role
   const getUserName = (id?: number) => {
     if (!id) return "Unassigned";
     const user = users.find((u) => u.id === Number(id));
     return user ? `${user.username} (${user.role.name})` : "User not found";
   };
 
-  // Search filter
-  const filteredTasks = tasks.filter((task) =>
-    `${task.title} ${task.description} ${task.project} ${task.team}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const handleAddComment = async (taskId: number) => {
+    if (!newComment.trim()) return;
+
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      await axios.post("/api/comments", {
+        taskId,
+        content: newComment,
+        createdBy: user.username,
+      });
+      setNewComment("");
+      fetchComments();
+    } catch (err) {
+      console.error("Add comment failed:", err);
+    }
+  };
+
+  // Filter tasks based on search, team, and project
+  const filteredTasks = tasks.filter(
+    (task) =>
+      (`${task.title} ${task.description} ${task.project} ${task.team}`)
+        .toLowerCase()
+        .includes(search.toLowerCase()) &&
+      (filterTeam ? task.team === filterTeam : true) &&
+      (filterProject ? task.project === filterProject : true)
+  );
+
+  // Extract unique teams and projects for filter dropdowns
+  const uniqueTeams = Array.from(new Set(tasks.map((t) => t.team).filter(Boolean)));
+  const uniqueProjects = Array.from(
+    new Set(tasks.map((t) => t.project).filter(Boolean))
   );
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Tasks</h1>
+      <h1 className="text-2xl font-bold">Senior Manager Dashboard</h1>
 
-      {/* SEARCH */}
-      <input
-        type="text"
-        placeholder="Search tasks..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full border px-3 py-2 rounded"
-      />
+      {/* SEARCH & FILTERS */}
+      <div className="flex gap-3 flex-wrap">
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-3 py-2 rounded flex-1 min-w-[200px]"
+        />
 
-      {/* FORM */}
+        <select
+          value={filterTeam}
+          onChange={(e) => setFilterTeam(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="">All Teams</option>
+          {uniqueTeams.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterProject}
+          onChange={(e) => setFilterProject(e.target.value)}
+          className="border px-3 py-2 rounded"
+        >
+          <option value="">All Projects</option>
+          {uniqueProjects.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* TASK FORM */}
       <form
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded shadow-md space-y-4"
@@ -277,17 +341,19 @@ const SeniorManagerTasks: React.FC = () => {
         ) : (
           <ul className="space-y-3">
             {filteredTasks.map((task) => (
-              <li key={task.id} className="border p-3 rounded">
-                <p className="font-semibold">{task.title}</p>
-                <p>{task.description}</p>
+              <li key={task.id} className="border p-3 rounded space-y-2">
+                <div>
+                  <p className="font-semibold">{task.title}</p>
+                  <p>{task.description}</p>
+                  <p className="text-sm text-gray-500">
+                    👤 Assigned: {getUserName(task.assignedTo)} <br />
+                    Team: {task.team || "N/A"} | Project: {task.project || "N/A"}
+                    <br />
+                    Due: {task.dueDate || "N/A"}
+                  </p>
+                </div>
 
-                <p className="text-sm text-gray-500">
-                  👤 Assigned: {getUserName(task.assignedTo)} <br />
-                  Team: {task.team || "N/A"} | Project: {task.project || "N/A"}
-                  <br />
-                  Due: {task.dueDate || "N/A"}
-                </p>
-
+                {/* STATUS & ACTIONS */}
                 <div className="flex gap-3 mt-2">
                   <select
                     value={task.status || "PENDING"}
@@ -312,6 +378,34 @@ const SeniorManagerTasks: React.FC = () => {
                   >
                     Delete
                   </button>
+                </div>
+
+                {/* COMMENTS SECTION */}
+                <div className="mt-3 border-t pt-2 space-y-2">
+                  <p className="font-semibold">Comments:</p>
+                  {comments
+                    .filter((c) => c.taskId === task.id)
+                    .map((c) => (
+                      <p key={c.id} className="text-sm text-gray-700">
+                        {c.createdBy}: {c.content}
+                      </p>
+                    ))}
+
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add comment..."
+                      className="flex-1 border px-2 py-1 rounded"
+                    />
+                    <button
+                      onClick={() => handleAddComment(task.id)}
+                      className="px-3 py-1 bg-black text-white rounded"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}

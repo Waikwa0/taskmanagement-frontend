@@ -2,12 +2,15 @@
 import React from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import NcbaLogo from "../assets/ncba-logo.webp";
+import { useUser } from "../contexts/UserContext";
+import CreateUser from "../pages/CreateUser";
 
 const HeadDashboardLayout: React.FC = () => {
+  const { user } = useUser();
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <aside className="w-64 bg-black text-white flex flex-col">
         {/* Logo */}
@@ -40,6 +43,13 @@ const HeadDashboardLayout: React.FC = () => {
             Analytics
           </button>
           <button
+            className="py-2 px-4 hover:bg-gray-800 rounded text-left"
+            onClick={() => navigate("/head-dashboard/create-user")}
+          >
+            Create User
+          </button>
+
+          <button
             className="py-2 px-4 hover:bg-gray-800 rounded text-left mt-auto"
             onClick={() => navigate("/login")}
           >
@@ -49,7 +59,11 @@ const HeadDashboardLayout: React.FC = () => {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8">
+      
+      <main className="flex-1 p-8 overflow-y-auto">
+        <h2 className="text-3xl font-bold">
+          Welcome, {user?.username || "User"}!
+        </h2>
         <Outlet />
       </main>
     </div>

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import axios from "../utils/AxiosConfig"; 
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
 
 const Login: React.FC = () => {
+  const { setUser } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,13 +21,33 @@ const Login: React.FC = () => {
         password,
       });
 
-      const user = response.data;
+      const backendUser = response.data;
+
+  const user = {
+    id: backendUser.id,
+    username: backendUser.username || backendUser.email?.split("@")[0],
+    role: backendUser.role,
+    token: backendUser.token,
+    firstLogin: backendUser.firstLogin || false,
+  };
+
 
       // Save JWT token
       localStorage.setItem("token", user.token);
 
       // Save full user info 
       localStorage.setItem("user", JSON.stringify(user));
+      
+      setUser(user);
+
+      console.log("BACKEND RESPONSE:", backendUser);
+
+      if (user.firstLogin) {
+        navigate("/change-password");
+        return;
+    }
+
+      
 
       const role = user.role?.toString().toUpperCase();
       console.log("User role from backend:", user.role, "Normalized role:", role);

@@ -21,6 +21,10 @@ axiosInstance.interceptors.request.use(
     if (config.url?.startsWith("/api/tasks")) {
       config.baseURL = "http://localhost:8080"; // Task service
     } 
+    else if (config.url?.startsWith("/api/comments")) {
+      config.baseURL = "http://localhost:8080"; // Comments service (same as task service)
+    }
+
      else if (config.url?.startsWith("/api/subtasks")) {
       config.baseURL = "http://localhost:8080"; // Task service
     }

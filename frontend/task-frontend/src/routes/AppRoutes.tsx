@@ -1,4 +1,3 @@
-// src/routes/AppRoutes.tsx
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -10,6 +9,8 @@ import HeadDashboardLayout from "../pages/HeadDashboardLayout";
 import HeadUsers from "../pages/HeadUsers";
 import HeadTasks from "../pages/HeadTasks";
 import HeadAnalytics from "../pages/HeadAnalytics";
+import CreateUser from "../pages/CreateUser";
+import ChangePassword from "../pages/ChangePassword";
 
 // Senior Manager
 import SeniorManagerDashboard from "../pages/SeniorManagerDashboard";
@@ -59,8 +60,11 @@ const AppRoutes: React.FC = () => {
         <Route path="users" element={<HeadUsers />} />
         <Route path="tasks" element={<HeadTasks />} />
         <Route path="analytics" element={<HeadAnalytics />} />
+        <Route path="create-user" element={<CreateUser />} />
         <Route path="" element={<Navigate to="users" />} />
       </Route>
+
+      <Route path="change-password" element={<ChangePassword />} />
 
       {/* Senior Manager dashboard */}
       <Route path="/manager-dashboard" element={<SeniorManagerDashboard />}>
@@ -74,7 +78,6 @@ const AppRoutes: React.FC = () => {
         <Route path="subtasks/:taskId" element={<DeveloperSubtasks />} />
         <Route path="" element={<Navigate to="tasks" />} />
       </Route>
-
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
